@@ -1,0 +1,129 @@
+#include "DHT.h"
+//#include "Wire.h"
+//#include "LiquidCrystal_I2C.h"
+
+
+ 
+//Adafruit_LiquidCrystal (0x27,16,2);
+
+#define DHT1PIN 12 
+#define DHT2PIN 13
+#define DHTTYPE DHT22  
+
+ 
+DHT dht1(DHT1PIN, DHTTYPE); //Der Sensor wird ab jetzt mit „dth1“ angesprochen
+DHT dht2(DHT2PIN, DHTTYPE); //Der Sensor wird ab jetzt mit „dth2“ angesprochen
+
+const int RecordTime = 3;  
+const int SensorPin = 2;   
+
+int InterruptCounter;
+float WindSpeed;
+
+
+void setup() {
+  Serial.begin(9600); //Serielle Verbindung starten
+  Serial.println("Wetterstation Programmstart");
+  dht1.begin(); //DHT22 Sensor starten
+  dht2.begin();
+//  lcd.begin(16, 2);
+ // lcd.print("Programmstart");
+  pinMode( 0 , INPUT); 
+  pinMode(7, OUTPUT);
+}
+
+
+
+
+void loop() {
+  
+  // Eine Sekunde Verzögerung zwischen Messungen
+  // --> Lesen der Temperatur / Feuchte dauert ca. t = 0,25 Sekunden
+  delay(2000);
+
+  // Lesen von Feuchte und Temperatur und Schreiben der Werte in die float-Variablen h und t 
+  meassure();
+  
+  
+  float h1 = dht1.readHumidity();
+  float t1 = dht1.readTemperature();
+  
+  float h2 = dht2.readHumidity();
+  float t2 = dht2.readTemperature();
+  
+  int Sensorwert = analogRead(0);
+  if ( (t1+t2)/2 > 24 ||(h1+h2)/2 > 61){
+    digitalWrite(7,HIGH);
+    
+    
+  }
+  /* Überprüfung, ob ein Lesevorgang gescheitert ist, evtl. Fehlerausgabe über seriellen Monitor
+  if (isnan(h1) || isnan(t1) || isnan(h2) || isnan(t2)) {
+    Serial.println(F("Lesevorgang DHT Sensor fehlgeschlagen!"));
+    return;*/
+  
+
+  // Ausgabe der Werte über
+  Serial.print(F("Luftfeuchtigkeit1: "));
+  Serial.print(h1);
+  Serial.print(F("%  Temperatur1: "));
+  Serial.print(t1);
+   Serial.print(F("  Luftfeuchtigkeit2: "));
+  Serial.print(h2);
+  Serial.print(F("%  Temperatur2: "));
+  Serial.print(t2);
+  Serial.print(F("°C "));
+  Serial.print("Luftqualität : "); 
+  Serial.print(Sensorwert, DEC); 
+  Serial.print("  Wind Speed: ");
+  Serial.print(WindSpeed);       //Speed in km/h
+  Serial.print(" km/h - ");
+  Serial.print(WindSpeed / 3.6); //Speed in m/s
+  Serial.println(" m/s");
+
+
+  // Cursor des LCDs auf Spalte 0 und Zeile 0 setzen
+  // Achtung: Zeile 1 oder Spalte 1 ist die zweite Zeile / Spalte, da bei 0 angefangen wird zu zählen
+  // set the cursor to column 0, line 1
+//  lcd.setCursor(0,0);
+  // Schreiben der Luftfeuchte in die erste Zeile des LCDs
+/*  lcd.print("Luftf.: ");
+  lcd.print(h);
+  lcd.print(" %");
+  // Cursor des LCDs auf Spalte 0 und Zeile 1 (also zweite Zeile) setzen
+  lcd.setCursor(0, 1);
+  // Schreiben der Raumtemperatur in die zweite Zeile des LCDs
+  lcd.print("Temp. : ");
+  lcd.print(t);
+  lcd.print(" \337C"); // Kürzel \337 für das °-Zeichen verwenden
+  delay(3000);
+  lcd.setCursor(0,0);
+  lcd.print("                ");
+  lcd.setCursor(0,1);
+  lcd.print("                ");
+
+  lcd.setCursor(0, 0);
+  // Schreiben der Raumtemperatur in die zweite Zeile des LCDs
+  lcd.print("Luftqualitaet : ");
+   
+  lcd.setCursor(0, 1);
+  // Schreiben der Raumtemperatur in die zweite Zeile des LCDs
+  lcd.print("Wert:");
+  lcd.setCursor(8, 1);
+  lcd.print(Sensorwert);
+
+*/
+}
+
+
+void meassure() {
+  InterruptCounter = 0;
+  attachInterrupt(digitalPinToInterrupt(SensorPin), countup, RISING);
+  delay(1000 * RecordTime);
+  detachInterrupt(digitalPinToInterrupt(SensorPin));
+  WindSpeed = (float)InterruptCounter / (float)RecordTime * 2.4;
+}
+
+void countup() {
+  InterruptCounter++;
+}
