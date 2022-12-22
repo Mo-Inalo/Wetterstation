@@ -1,10 +1,10 @@
 #include "DHT.h"
-//#include "Wire.h"
-//#include "LiquidCrystal_I2C.h"
+#include "Wire.h"
+#include "LiquidCrystal_I2C.h"
 
 
  
-//Adafruit_LiquidCrystal (0x27,16,2);
+LiquidCrystal_I2C lcd(0x27,16,2);
 
 #define DHT1PIN 12 
 #define DHT2PIN 13
@@ -26,8 +26,9 @@ void setup() {
   Serial.println("Wetterstation Programmstart");
   dht1.begin(); //DHT22 Sensor starten
   dht2.begin();
-//  lcd.begin(16, 2);
- // lcd.print("Programmstart");
+  lcd.init();
+  lcd.backlight();
+  lcd.print("Programmstart");
   pinMode( 0 , INPUT); 
   pinMode(7, OUTPUT);
 }
@@ -39,7 +40,7 @@ void loop() {
   
   // Eine Sekunde Verzögerung zwischen Messungen
   // --> Lesen der Temperatur / Feuchte dauert ca. t = 0,25 Sekunden
-  delay(2000);
+  delay(3000);
 
   // Lesen von Feuchte und Temperatur und Schreiben der Werte in die float-Variablen h und t 
   meassure();
@@ -53,48 +54,64 @@ void loop() {
   
   int Sensorwert = analogRead(0);
   if ( (t1+t2)/2 > 24 ||(h1+h2)/2 > 61){
-    digitalWrite(7,HIGH);
-    
-    
+    digitalWrite(7,HIGH);  
   }
-  /* Überprüfung, ob ein Lesevorgang gescheitert ist, evtl. Fehlerausgabe über seriellen Monitor
+
+   //Überprüfung, ob ein Lesevorgang gescheitert ist, evtl. Fehlerausgabe über seriellen Monitor
   if (isnan(h1) || isnan(t1) || isnan(h2) || isnan(t2)) {
     Serial.println(F("Lesevorgang DHT Sensor fehlgeschlagen!"));
-    return;*/
-  
+      return;
+  }
 
   // Ausgabe der Werte über
   Serial.print(F("Luftfeuchtigkeit1: "));
   Serial.print(h1);
   Serial.print(F("%  Temperatur1: "));
   Serial.print(t1);
-   Serial.print(F("  Luftfeuchtigkeit2: "));
+  Serial.print(" C ");
+  Serial.print(F("  Luftfeuchtigkeit2: "));
   Serial.print(h2);
   Serial.print(F("%  Temperatur2: "));
   Serial.print(t2);
-  Serial.print(F("°C "));
-  Serial.print("Luftqualität : "); 
+  Serial.print(" C ");
+  Serial.print("Luftqualitaet : "); 
   Serial.print(Sensorwert, DEC); 
   Serial.print("  Wind Speed: ");
   Serial.print(WindSpeed);       //Speed in km/h
   Serial.print(" km/h - ");
   Serial.print(WindSpeed / 3.6); //Speed in m/s
   Serial.println(" m/s");
-
+  /*
+  DateTime now = rtc.now();
+  Serial.print(now.year(), DEC);
+  Serial.print('/');
+  Serial.print(now.month(), DEC);
+  Serial.print('/');
+  Serial.print(now.day(), DEC);
+  Serial.print(" (");
+  Serial.print(daysOfTheWeek[now.dayOfTheWeek()]);
+  Serial.print(") ");
+  Serial.print(now.hour(), DEC);
+  Serial.print(':');
+  Serial.print(now.minute(), DEC);
+  Serial.print(':');
+  Serial.print(now.second(), DEC);
+  Serial.println();
+*/
 
   // Cursor des LCDs auf Spalte 0 und Zeile 0 setzen
   // Achtung: Zeile 1 oder Spalte 1 ist die zweite Zeile / Spalte, da bei 0 angefangen wird zu zählen
   // set the cursor to column 0, line 1
-//  lcd.setCursor(0,0);
+  lcd.setCursor(0,0);
   // Schreiben der Luftfeuchte in die erste Zeile des LCDs
-/*  lcd.print("Luftf.: ");
-  lcd.print(h);
+  lcd.print("Luftf.: ");
+  lcd.print(h1);
   lcd.print(" %");
   // Cursor des LCDs auf Spalte 0 und Zeile 1 (also zweite Zeile) setzen
   lcd.setCursor(0, 1);
   // Schreiben der Raumtemperatur in die zweite Zeile des LCDs
   lcd.print("Temp. : ");
-  lcd.print(t);
+  lcd.print(t1);
   lcd.print(" \337C"); // Kürzel \337 für das °-Zeichen verwenden
   delay(3000);
   lcd.setCursor(0,0);
@@ -112,7 +129,7 @@ void loop() {
   lcd.setCursor(8, 1);
   lcd.print(Sensorwert);
 
-*/
+
 }
 
 
