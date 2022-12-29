@@ -1,46 +1,50 @@
-#include "DHT.h"
-#include "Wire.h"
-#include "LiquidCrystal_I2C.h"
-#include <virtuabotixRTC.h>
 
-#define DHT1PIN 12 
-#define DHT2PIN 13
-#define DHTTYPE DHT22  
+#include "DHT.h"  //importieren der DHT Bibliotheken fuer den Temprature und Luftfeuchtigkeit Sensor
+#include "LiquidCrystal_I2C.h" //importieren der LCD Bibliotheken fuer das LCD Display
+#include "virtuabotixRTC.h" //importieren der RTC Bibliotheken fuer die Echtzeituhr
 
-LiquidCrystal_I2C lcd(0x27,16,2);
+
+#define DHT1PIN 12 //Festlegung pin 12 fuer sensor1 
+#define DHT2PIN 13  //Festlegung pin 13 fuer sensor1
+#define DHTTYPE DHT22  //Festlegung DHTtyp mit dem wert DHT22
+
+LiquidCrystal_I2C lcd(0x27,16,2); //Initialierung eines LCD Variable mit adresse 0X27 und 16 Spalten und 2 Zeilen
+
 DHT dht1(DHT1PIN, DHTTYPE); //Der Sensor wird ab jetzt mit „dth1“ angesprochen
 DHT dht2(DHT2PIN, DHTTYPE); //Der Sensor wird ab jetzt mit „dth2“ angesprochen
 
-const int RecordTime = 3;  
-const int SensorPin = 3;   
+const int RecordTime = 3;  // Variable zur zaehlung der Sekunden
+const int SensorPin = 3;   // Pin3 aks input fuer den Anemometer
 
-int InterruptCounter;
-float windSpeed;
-virtuabotixRTC myRTC(9, 10,11);
-void clearLcd();
-void meassure();
+int InterruptCounter;  //Variable zur Zaqlhung von Pulsen
+float windSpeed; // Variable zur Berechnugn von Windgeschwindigkeit
+
+virtuabotixRTC myRTC(9, 10,11); //Initialierung eines Echtzeituhr mit Pins 9,10 und 11
+
+void clearLcd(); // Deklaration einer Funktion zur löschen alle ausgaben auf der LCD
+void meassure(); // Deklaraiton einer Funktion zu Messung von Wind Geschwindigkeit
  
 
 void setup() {
   
   Serial.begin(9600); //Serielle Verbindung starten
-  Serial.println("Wetterstation Programmstart");
-  dht1.begin(); //DHT22 Sensor starten
-  dht2.begin();
-  lcd.init();
+  Serial.println("Wetterstation Programmstart"); //Einamlige Begruessungsnachricht auf dem Seriellen Monitor
+  dht1.begin(); //DHT1 Sensor starten
+  dht2.begin(); //DHT2 Sensor starten
+  lcd.init(); // Initialisieren des LCDs
   lcd.backlight();
-  lcd.setCursor(1,0);
-  lcd.print("Programmstart");
+  lcd.setCursor(1,0); //Cursor auf der Zweite Spalte der ersten zeile setzen : Numerierung beginnt mit 0.
+  lcd.print("Programmstart"); // Ausgabe der Nachricht auf dem LCD
   lcd.setCursor(1,1);
   lcd.print("Wetterstation");
-  delay(2000);
-  pinMode( 0 , INPUT); 
+  delay(2000); // Mit der ausgegeben Nachricht 2 Sekunden warten
+  pinMode( 0 , INPUT); // Analog pin 0 als input pin fuer den MQ135 Luftgualitaetssensor definieren
   pinMode(7, OUTPUT);
   pinMode(8, OUTPUT);
 }
 
 
-
+// funktion zu Loeschung aller Ausgaben auf dem LCD indem alles mit einer Leertasten eingesetzt wird
 void clearLcd (){
   lcd.setCursor(0,0);
   lcd.print("                ");
@@ -49,23 +53,17 @@ void clearLcd (){
 }
 
 
-
+//Funktion zur Ausgabe von der RTC daten auf dem Seriellenmonitor in einem bloch mit Eckigenklammern.
 void serialTimeDate(uint8_t hour, uint8_t min, uint8_t sec, uint8_t day, uint8_t month, int year){
-
   char s[50];
   sprintf(s,"%02u/%02u/%04d %02u:%02u:%02u", day, month, year, hour, min, sec); 
   Serial.print("["); 
   Serial.print(s);
   Serial.print("]   "); 
-
 }
 
-
-
-
-
+//funktion zur Ausgabe der Daten aus dem DTH22, Mq135 und de Anemometer auf dem Seriellenmonitor in einer Zeile.
 void serialValues (float temp1, float hum1,float temp2,float hum2,float quali,float wsped ) {
-  
   char t1[20];
   char h1[20];
   char t2[20];
@@ -83,67 +81,36 @@ void serialValues (float temp1, float hum1,float temp2,float hum2,float quali,fl
   dtostrf (wsped,-6,2,windspeed);
   dtostrf (windspeedms,-6,2,windspeedmschar);
 
-  //Round1
- 
-  // Schreiben der Luftfeuchte in die erste Zeile des LCDs
+  // Ausgeben der Daten auf dem Seriellen Monitor
+  // Daten der dht1
   Serial.print("T1:");
-  
   Serial.print(t1);
-  
   Serial.print(" C    ");
-  // Cursor des LCDs auf Spalte 0 und Zeile 1 (also zweite Zeile) setzen
- 
-  // Schreiben der Raumtemperatur in die zweite Zeile des LCDs
   Serial.print("H1:");
-  
   Serial.print(h1);
- 
-  Serial.print(" %    "); // Kürzel \337 für das °-Zeichen verwenden
-  
-  //Round2
-
-  // Schreiben der Luftfeuchte in die erste Zeile des LCDs
- 
-  // Schreiben der Luftfeuchte in die erste Zeile des LCDs
+  Serial.print(" %    ");
+  //Daten der dht2
   Serial.print("T2:");
-
   Serial.print(t2);
-
   Serial.print(" C    ");
-  // Cursor des LCDs auf Spalte 0 und Zeile 1 (also zweite Zeile) setzen
-
-  // Schreiben der Raumtemperatur in die zweite Zeile des LCDs
   Serial.print("H2:");
- 
   Serial.print(h2);
-
-  Serial.print(" %    "); // Kürzel \337 für das °-Zeichen verwenden
- 
-  
-  //Round 3
-  
-  // Schreiben der Raumtemperatur in die zweite Zeile des LCDs
+  Serial.print(" %    ");
+  //Daten der MQ135
   Serial.print("Luftqualitaet");
   Serial.print(q);
   Serial.print("    ");
-
-
-  //Round4
- 
-  // Schreiben der Raumtemperatur in die zweite Zeile des LCDs
+  //Daten der Anemometer
   Serial.print("Speed: ");
   Serial.print(windspeed);  
   Serial.print(" km/h    ");
-  
   Serial.print("Speed: ");
   Serial.print((windspeedmschar));  
   Serial.println(" m/s ..");
-  
 }
 
-
-void showLcdTimeDate(uint8_t hour, uint8_t min, uint8_t sec, uint8_t day, uint8_t month, int year)
-{
+//Funktion zur Ausgabe von der RTC daten auf dem LCD in zwei Zeilen.
+void showLcdTimeDate(uint8_t hour, uint8_t min, uint8_t sec, uint8_t day, uint8_t month, int year){
   char s1[20];
   char s2[20];
 
@@ -161,7 +128,7 @@ void showLcdTimeDate(uint8_t hour, uint8_t min, uint8_t sec, uint8_t day, uint8_
   
 }
 
-
+//Funktion zur Ausgabe der Daten aus dem DTH22, Mq135 und de Anemometer auf dem LCD auf meheren Phasen/Ausgaben.
 void showLcdValues(float temp1, float hum1,float temp2,float hum2,float quali,float wsped)
 {
   char t1[20];
@@ -181,17 +148,15 @@ void showLcdValues(float temp1, float hum1,float temp2,float hum2,float quali,fl
   dtostrf (wsped,-6,2,windspeed);
   dtostrf (windspeedms,-6,2,windspeedmschar);
 
-  //Round1
+  // 1. Ausgabe
+  // Daten der dht1
   lcd.setCursor(0,0);
-  // Schreiben der Luftfeuchte in die erste Zeile des LCDs
   lcd.print("T1:");
   lcd.setCursor(4,0);
   lcd.print(t1);
   lcd.setCursor(11,0);
   lcd.print("\337C");
-  // Cursor des LCDs auf Spalte 0 und Zeile 1 (also zweite Zeile) setzen
   lcd.setCursor(0, 1);
-  // Schreiben der Raumtemperatur in die zweite Zeile des LCDs
   lcd.print("H1:");
   lcd.setCursor(4, 1);
   lcd.print(h1);
@@ -199,41 +164,33 @@ void showLcdValues(float temp1, float hum1,float temp2,float hum2,float quali,fl
   lcd.print("%"); // Kürzel \337 für das °-Zeichen verwenden
   delay(3000);
   clearLcd();
- 
-  //Round2
-
-  // Schreiben der Luftfeuchte in die erste Zeile des LCDs
+  // 2. Ausgabe
+  // Daten der dht2
   lcd.setCursor(0,0);
-  // Schreiben der Luftfeuchte in die erste Zeile des LCDs
   lcd.print("T2:");
   lcd.setCursor(4,0);
   lcd.print(t2);
   lcd.setCursor(11,0);
   lcd.print("\337C");
-  // Cursor des LCDs auf Spalte 0 und Zeile 1 (also zweite Zeile) setzen
   lcd.setCursor(0, 1);
-  // Schreiben der Raumtemperatur in die zweite Zeile des LCDs
   lcd.print("H2:");
   lcd.setCursor(4, 1);
   lcd.print(h2);
   lcd.setCursor(12, 1);
-  lcd.print("%"); // Kürzel \337 für das °-Zeichen verwenden
+  lcd.print("%"); 
   delay(3000);
   clearLcd();
-  
-  //Round 3
+  // 3. Ausgabe
+  // Daten der MQ135
   lcd.setCursor(1, 0);
-  // Schreiben der Raumtemperatur in die zweite Zeile des LCDs
   lcd.print("Luftqualitaet");
   lcd.setCursor(4, 1);
   lcd.print(q);
   delay(3000);
   clearLcd();
-
-
-  //Round4
+  // 4. Ausgabe
+  // Daten der Anemometer
   lcd.setCursor(0, 0);
-  // Schreiben der Raumtemperatur in die zweite Zeile des LCDs
   lcd.print("Speed:");
   lcd.print(windspeed);  
   lcd.print("km/h");
@@ -241,16 +198,10 @@ void showLcdValues(float temp1, float hum1,float temp2,float hum2,float quali,fl
   lcd.print("Speed:");
   lcd.print((windspeedmschar));  
   lcd.print("m/s");
-
-
-  
- 
-
-  
 }
 
 
-
+//Funktion zur Berechnung von Windgeschwindigkeit in dem Pulsen in km/h umgerechnet werden.
 void meassure() {
   InterruptCounter = 0;
   attachInterrupt(digitalPinToInterrupt(SensorPin), countup, RISING);
